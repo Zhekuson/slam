@@ -14,11 +14,14 @@ class KJuniorRobot():
         '''
         Init: already connected client, robot name from Coppelia, vision sensor name 
         '''
+        #init defaults
         self.default_left_motor_name = '_motorLeft'
         self.default_right_motor_name = '_motorRight'
         self.client = client
         self.supposedX = 0
         self.supposedY = 0
+        self.default_speed = 10
+        self.default_w_speed = 10
         #robot
         robot_handle = client.simxGetObjectHandle(robot_name,client.simxServiceCall())
         if(not robot_handle[0]):
@@ -45,18 +48,20 @@ class KJuniorRobot():
         if(result[0]):
             return result[1]
         self.print_error_exit("ERROR IN GETTING TARGET VELOCITY")
+
     def getRealCurrentPosition(self):
         result = self.client.simxGetJointPosition(self.robot_id, self.client.simxServiceCall())
         if(result[0]):
             return result[1]
         self.print_error_exit("ERROR IN GETTING CURRENT POSITION")
+
     def getCurrentVelocity(self):
         result = self.client.simxGetObjectVelocity(self.robot_id, self.client.simxServiceCall())
         if(result[0]):
             return result[1]
         self.print_error_exit("ERROR IN GETTING CURRENT VELOCITY")
     
-    def rotateWithoutMoving(self,w_speed):
+    def setRotationSpeed(self,w_speed):
         '''
         w_speed - rotating speed (depending on sign)
         '''
@@ -64,7 +69,8 @@ class KJuniorRobot():
                 self.client.simxServiceCall())
         self.client.simxSetJointTargetVelocity(self.right_motor_id,-w_speed,
                 self.client.simxServiceCall())
-    def setTargetSpeed(self, speed):
+
+    def setSpeed(self, speed):
         '''
         set speed, bot is moving only forward 
         '''
