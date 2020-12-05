@@ -1,5 +1,6 @@
 __pycache__
 .vscode
 .idea
-
+#vision/depth/fyn_model.pt
+#vision/object_detection/detection_model.pt
 
