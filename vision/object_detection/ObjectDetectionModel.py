@@ -18,7 +18,7 @@ def get_device():
     return device
 
 
-def get_model(LOAD_DIR = 'vision/object_detection/'):
+def load_model(LOAD_DIR = 'vision/object_detection/'):
     model = ObjectDetectionModel()._get_detection_model(num_classes=2)
     model.load_state_dict(torch.load(LOAD_DIR +'detection_model.pt', map_location='cpu'))
     model.eval()

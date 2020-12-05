@@ -223,5 +223,6 @@ class KJuniorRobot:
         self._spin(3)
 
 
-    def get_image_from_scanner(self, callback):
+    def subscribe_getting_image_from_scanner(self, callback):
         self.client.simxGetVisionSensorImage(self.vision_sensor_id, False, self.client.simxDefaultSubscriber(callback))
+
