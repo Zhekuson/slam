@@ -23,7 +23,7 @@ class KJuniorRobot:
         self.orientation_lock = Lock()
         self.orientation = []
         self.w = 4
-        self.rotation_per_sec = 0.25
+        self.rotation_per_sec = 0.125
 
         # robot
         robot_handle = client.simxGetObjectHandle(robot_name, client.simxServiceCall())

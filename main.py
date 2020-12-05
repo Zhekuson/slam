@@ -24,7 +24,7 @@ with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient', 'b0RemoteApi') as c
         robot.set_target_speed(-10, 5)
         robot.stop()
         '''
-        robot.rotate_without_moving(pi / 2)
+        robot.rotate_without_moving(pi)
         robot.stop()    
 
     perform_step(step, client)
