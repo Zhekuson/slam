@@ -30,8 +30,6 @@ class ImageProcessor():
         self.lock = Lock()
 
     def subscribe(self, msg):
-        print("Images count "+ str(self.counter))
-        self.counter += 1
         self.lock.acquire()
         if self.last_update_time != None and time.time() - self.last_update_time > 3:
             
@@ -46,25 +44,31 @@ class ImageProcessor():
 
             depth_tensor = self.depth_model(torch.reshape(tensor2,(1,tensor2.size()[0],
                 tensor2.size()[1],tensor2.size()[2])).float())
-            
+            start_time = time.time()
             depth_tensor = (depth_tensor - torch.min(depth_tensor)) / (torch.max(depth_tensor) - torch.min(depth_tensor))
-            print(depth_tensor)
+            end_time = time.time()
+            print("depth estimation took: "+str(end_time-start_time)+' sec')
             depth_image = torchvision.transforms.ToPILImage()(depth_tensor.squeeze(0))
-            plt.imshow(depth_image,cmap='gray')
-            plt.show()
+            print(depth_image.size)
+            
+            #plt.imshow(depth_image,cmap='gray')
+            #plt.show()
+            start_time = time.time()
             detection_predict = self.detection_model([tensor])
-
+            end_time = time.time()
+            print("detection took: "+str(end_time-start_time)+' sec')
             if(detection_predict[0]['boxes'].size()[0]!=0):
                 
                 image = torchvision.transforms.ToPILImage()(tensor)
+                print(image.size)
                 draw = ImageDraw.Draw(image)
 
                 for index, box in enumerate(detection_predict[0]['boxes']):
                     if(detection_predict[0]['scores'][index] > self.limit):
                         draw.rectangle([(box[0], box[1]), (box[2], box[3])], outline='white')
                   
-                plt.imshow(image)
-                plt.show()
+                #plt.imshow(image)
+                #plt.show()
 
             self.map_builder_callback(image)
             self.last_update_time = time.time() 
