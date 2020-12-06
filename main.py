@@ -23,7 +23,7 @@ def perform_step(step_func, client: RemoteApiClient):
 with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient', 'b0RemoteApi') as client:
     map_builder = MapBuilder()
     image_processor = ImageProcessor(map_builder.update_map)
-    robot = KJuniorRobot(client, 'KJunior', 'Vision_sensor5')
+    robot = KJuniorRobot(client, 'KJunior', 'Vision_sensor', 'Proximity_sensor0')
     client.simxSynchronous(False)
     def step():
         robot.subscribe_to_robot_position_change()
@@ -52,6 +52,7 @@ with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient', 'b0RemoteApi') as c
         print(avg_angle / len(times))
 
     def move():
+        #robot.subscribe_to_proximity_sensor()
         robot.subscribe_to_robot_position_change()
         robot.subscribe_to_left_wheel_position_change()
         robot.subscribe_getting_image_from_scanner(image_processor.subscribe)

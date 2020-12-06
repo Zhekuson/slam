@@ -1,4 +1,5 @@
 import torch
+from torchvision.transforms.transforms import Resize
 from MapBuilder import MapBuilder
 import numpy as np
 from RobotException import RobotException
@@ -11,6 +12,8 @@ import albumentations as A
 from PIL import ImageDraw
 import time
 from threading import Lock
+import cv2
+from matplotlib.colors import Normalize
 class ImageProcessor():
     def __init__(self, map_builder_callback):
         """
@@ -22,6 +25,7 @@ class ImageProcessor():
         self.limit = 0.95
         self.last_update_time = 0
         self.transform = A.Compose([TT.ToTensor()])
+        self.transform1 = A.Compose([TT.ToTensor()])
         self.counter = 0
         self.lock = Lock()
 
@@ -37,7 +41,19 @@ class ImageProcessor():
             image = input.reshape((msg[1][0], msg[1][1], 3))
             
             tensor = self.transform(image = image, bboxes = None, labels=None)["image"]
+            tensor2 = self.transform1(image = image, bboxes = None, labels = None)["image"]
+            
+
+            depth_tensor = self.depth_model(torch.reshape(tensor2,(1,tensor2.size()[0],
+                tensor2.size()[1],tensor2.size()[2])).float())
+            
+            depth_tensor = (depth_tensor - torch.min(depth_tensor)) / (torch.max(depth_tensor) - torch.min(depth_tensor))
+            print(depth_tensor)
+            depth_image = torchvision.transforms.ToPILImage()(depth_tensor.squeeze(0))
+            plt.imshow(depth_image,cmap='gray')
+            plt.show()
             detection_predict = self.detection_model([tensor])
+
             if(detection_predict[0]['boxes'].size()[0]!=0):
                 
                 image = torchvision.transforms.ToPILImage()(tensor)
@@ -49,7 +65,7 @@ class ImageProcessor():
                   
                 plt.imshow(image)
                 plt.show()
-            
+
             self.map_builder_callback(image)
             self.last_update_time = time.time() 
         self.lock.release()

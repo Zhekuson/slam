@@ -115,4 +115,3 @@ def predict(model:DepthEstimationModel, data):
     depth_img = pred_depth.int().squeeze(0) #transforms.ToPILImage()(pred_depth.int().squeeze(0))
     return depth_img
 '''
-model = load_model()

@@ -13,7 +13,8 @@ from utils import get_angle_between_vectors, get_vector_in_robot_coords
 
 class KJuniorRobot:
 
-    def __init__(self, client: RemoteApiClient, robot_name, attached_vision_sensor_name):
+    def __init__(self, client: RemoteApiClient, robot_name, attached_vision_sensor_name,
+         attached_proximity_sensor_name):
         """
         Init: already connected client, robot name from Coppelia, vision sensor name
         """
@@ -32,7 +33,13 @@ class KJuniorRobot:
         self.angular_velocity = 1
         self.linear_velocity = 10
         self.rotation_per_sec = 0.03011793979849999
-
+        '''
+        #proximity sensor
+        proximity_handle = client.simxGetObjectHandle(attached_proximity_sensor_name, client.simxServiceCall())
+        if(not proximity_handle[0]):
+            raise RobotException('error happened while binding robot (proximity sensor error?)')
+        self.proximity_id = proximity_handle[1]
+        '''
         # robot
         robot_handle = client.simxGetObjectHandle(robot_name, client.simxServiceCall())
         if not robot_handle[0]:
@@ -84,6 +91,11 @@ class KJuniorRobot:
         trajectory = self.trajectory
         self.robot_position_lock.release()
         return trajectory
+
+    def subscribe_to_proximity_sensor(self):
+        def callback(msg):
+            print(self.client.simxGetObjectName(msg[4], False,self.client.simxServiceCall()))
+        self.client.simxReadProximitySensor(self.proximity_id,self.client.simxDefaultSubscriber(callback))
 
 
     def subscribe_to_robot_position_change(self):
@@ -218,6 +230,7 @@ class KJuniorRobot:
     
 
     def stop(self):
+        
         self.client.simxSetJointTargetVelocity(self.left_motor_id, 0, self.client.simxDefaultPublisher())
         self.client.simxSetJointTargetVelocity(self.right_motor_id, 0, self.client.simxDefaultPublisher())
         self._spin(3)
