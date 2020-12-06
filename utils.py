@@ -2,6 +2,7 @@ import numpy as np
 import math
 import os, shutil
 
+
 def get_angle_between_vectors(first, second):
     coords_sum = first[0] * second[0] + first[1] * second[1]
     lengths_product = math.sqrt(first[0] ** 2 + first[1] ** 2) * math.sqrt(second[0] ** 2 + second[1] ** 2)

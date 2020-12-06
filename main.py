@@ -11,12 +11,7 @@ os.add_dll_directory('C:\\Program Files\\CoppeliaRobotics\\CoppeliaSimEdu\\')
 
 def perform_step(step_func, client: RemoteApiClient):
     client.simxStartSimulation(client.simxServiceCall())
-
-    try:
-        step_func()
-    except Exception as ex:
-        print(ex)
-    
+    step_func()
     client.simxStopSimulation(client.simxServiceCall())
 
 
@@ -24,8 +19,7 @@ with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient', 'b0RemoteApi') as c
     map_builder = MapBuilder()
     image_processor = ImageProcessor(map_builder.update_map)
     robot = KJuniorRobot(client, 'KJunior', 'Vision_sensor', 'Proximity_sensor0')
-    client.simxSynchronous(False)
-    
+
     def step():
         robot.subscribe_to_robot_position_change()
         robot.subscribe_to_left_wheel_position_change()
@@ -48,26 +42,32 @@ with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient', 'b0RemoteApi') as c
             avg_speed += w
             avg_angle += angle
             print(w, angle)
-            robot.stop()
 
         print(avg_speed / len(times))
         print(avg_angle / len(times))
 
 
     def move():
-        #robot.subscribe_to_proximity_sensor()
         robot.subscribe_to_robot_position_change()
-        robot.subscribe_to_left_wheel_position_change()
-        robot.subscribe_getting_image_from_scanner(image_processor.subscribe)
+        robot.subscribe_to_left_wheel_position_change()        
+        image_processor.process_image(robot.stop_and_get_image())
         robot.rotate_without_moving(pi / 4)
+        image_processor.process_image(robot.stop_and_get_image())
         robot.set_target_speed(5, 8)
+        image_processor.process_image(robot.stop_and_get_image())
         robot.rotate_without_moving(pi / 2)
+        image_processor.process_image(robot.stop_and_get_image())
         robot.set_target_speed(5, 8)
+        image_processor.process_image(robot.stop_and_get_image())
         robot.rotate_without_moving(pi / 2)
+        image_processor.process_image(robot.stop_and_get_image())
         robot.set_target_speed(5, 8)
+        image_processor.process_image(robot.stop_and_get_image())
         robot.rotate_without_moving(pi / 2)
+        image_processor.process_image(robot.stop_and_get_image())
         robot.set_target_speed(5, 8)
-        robot.plot_trajectory()
+        image_processor.process_image(robot.stop_and_get_image())
+        robot.save_trajectory()
 
 
     perform_step(move, client)

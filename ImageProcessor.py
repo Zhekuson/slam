@@ -18,9 +18,13 @@ import torch.nn.functional as F
 from slam_threading.ParallelExecutor import ParallelExecutor
 from slam_threading.ParallelExecutor import Job
 from utils import clear_folder
+from KJuniorRobot import KJuniorRobot
+from slam_threading.ParallelExecutor import SlamThread
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
+
+
 class ImageProcessor():
     def __init__(self, map_builder_callback):
         self.map_builder_callback = map_builder_callback
@@ -37,14 +41,11 @@ class ImageProcessor():
         self.depth_images_folder = './images/depth_estimation/'
         clear_folder(self.detection_images_folder)
         clear_folder(self.depth_images_folder)
+        torch.cuda.empty_cache()
 
 
-
-    def subscribe(self, msg):
-        self.lock.acquire()
-
-        if self.last_update_time != None and time.time() - self.last_update_time > 3:
-            
+    def process_image(self, msg):
+        def process_image_internal():
             if not msg[0]:
                 raise RobotException("Error in getting image from visual sensor")
 
@@ -52,14 +53,17 @@ class ImageProcessor():
             image = input.reshape((msg[1][0], msg[1][1], 3))
             tensor = self.transform(image = image, bboxes = None, labels=None)["image"].to(device)
 
+            self.last_update_time = time.time()
             detection_job = Job(lambda: self.detect_objects_and_save_images(tensor), "Detect objects")
             depth_est_job = Job(lambda: self.estimate_depth_and_save_image(tensor), "Estimating depth")
             result = self.parallel_executor.execute([detection_job, depth_est_job])
-            
-            self.map_builder_callback(result)
-            self.last_update_time = time.time() 
+            result.append(tensor)
 
-        self.lock.release()
+            self.map_builder_callback(result)
+
+        thread = SlamThread(Job(process_image_internal, "Processing image"), True)
+        thread.start()
+
 
 
     def detect_objects(self, tensor):
@@ -86,9 +90,7 @@ class ImageProcessor():
                     suitable_boxes.append(box)
                     draw.rectangle([(box[0], box[1]), (box[2], box[3])], outline='white')
                 
-            fig, ax = plt.subplots( nrows=1, ncols=1 )
-            ax.imshow(image)
-            fig.savefig(self.detection_images_folder + str(self.last_update_time) + '.png')
+            image.save(self.detection_images_folder + str(self.last_update_time) + '.png')
 
         return suitable_boxes
 
@@ -104,11 +106,9 @@ class ImageProcessor():
         shape = (1, tensor.size()[0], tensor.size()[1], tensor.size()[2])
         depth_tensor = self.depth_model(torch.reshape(tensor, shape).float().to(device))
         depth_tensor = (depth_tensor - torch.min(depth_tensor)) / (torch.max(depth_tensor) - torch.min(depth_tensor))
-        depth_tensor = F.interpolate(depth_tensor, size = (tensor.size()[1], tensor.size()[2]))
+        #depth_tensor = F.interpolate(depth_tensor, size = (tensor.size()[1], tensor.size()[2]))
         depth_image = torchvision.transforms.ToPILImage()(depth_tensor.squeeze(0))
 
-        fig, ax = plt.subplots( nrows=1, ncols=1 )
-        ax.imshow(depth_image, cmap='gray')
-        fig.savefig(self.depth_images_folder + str(self.last_update_time) + '.png')
+        depth_image.save(self.depth_images_folder + str(self.last_update_time) + '.png')
 
         return depth_tensor

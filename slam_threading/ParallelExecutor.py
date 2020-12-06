@@ -13,7 +13,7 @@ class SlamThread(threading.Thread):
     def run(self):
         start_time = time.time()
         if self.verbose:
-            print("Startedf execution for " + self.job.name + " at" + str(start_time))
+            print("Started execution for " + self.job.name + " at" + str(start_time))
 
         self.result = self.job.func()
 

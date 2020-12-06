@@ -8,7 +8,7 @@ from math import pi
 import math
 from matplotlib import pyplot as plt
 import matplotlib.markers
-from utils import get_angle_between_vectors, get_vector_in_robot_coords
+from utils import get_angle_between_vectors, get_vector_in_robot_coords, clear_folder
 
 
 class KJuniorRobot:
@@ -30,14 +30,18 @@ class KJuniorRobot:
         self.left_motor_position_lock = Lock()
         self.orientation = []
         self.left_motor_trajectory = []
-        self.angular_velocity = 1
+        self.angular_velocity = 1.4
         self.linear_velocity = 10
-        self.rotation_per_sec = 0.03011793979849999
+        self.rotation_per_sec = 0.10009779522019428
+        self.experiments_images_folder = './images/angular_speed_experiments/'
+        self.robot_trajectory_images_folder = './images/robot_trajectory/'
+        clear_folder(self.experiments_images_folder)
+        clear_folder(self.robot_trajectory_images_folder)
 
         # robot
         robot_handle = client.simxGetObjectHandle(robot_name, client.simxServiceCall())
         if not robot_handle[0]:
-            raise RobotException('error happened while binding robot (name error?)')
+            raise RobotException('Error happened while binding robot (name error?)')
 
         self.robot_id = robot_handle[1]
 
@@ -46,7 +50,7 @@ class KJuniorRobot:
         right_motor_handle = client.simxGetObjectHandle(robot_name + self.default_right_motor_name, client.simxServiceCall())
 
         if not left_motor_handle[0] or not right_motor_handle[0]:
-            raise RobotException('error happened while binding robot (motor name error?)')
+            raise RobotException('Error happened while binding robot (motor name error?)')
         
         self.left_motor_id = left_motor_handle[1]
         self.right_motor_id = right_motor_handle[1]
@@ -54,7 +58,7 @@ class KJuniorRobot:
         # vision
         vision_sensor_handle = client.simxGetObjectHandle(attached_vision_sensor_name, client.simxServiceCall())
         if not vision_sensor_handle[0]:
-            raise RobotException('error happened while binding robot (vision sensor name error?)')
+            raise RobotException('Error happened while binding robot (vision sensor name error?)')
 
         self.vision_sensor_id = vision_sensor_handle[1]
 
@@ -64,7 +68,7 @@ class KJuniorRobot:
         if result[0]:
             return result[1]
 
-        raise RobotException("ERROR IN GETTING TARGET VELOCITY")
+        raise RobotException("Error in getting target velocity")
 
 
     def get_robot_position(self):
@@ -74,10 +78,11 @@ class KJuniorRobot:
         return pos
 
 
-    def plot_trajectory(self):
+    def save_trajectory(self):
         trajectory = self.get_trajectory()
-        plt.scatter([p[0] for p in trajectory], [p[1] for p in trajectory])
-        plt.show()
+        fig, ax = plt.subplots(nrows=1, ncols=1)
+        ax.scatter([p[0] for p in trajectory], [p[1] for p in trajectory])
+        fig.savefig(self.robot_trajectory_images_folder + 'robot_trajectory_' + str(time.time()) + '.png')
 
 
     def get_trajectory(self):
@@ -139,10 +144,11 @@ class KJuniorRobot:
         return trajectory
 
 
-    def plot_left_motor_trajectory(self):
+    def save_left_motor_trajectory(self):
         trajectory = self.get_left_motor_trajectory()
-        plt.scatter([p[0] for p in trajectory], [p[1] for p in trajectory])
-        plt.show()
+        fig, ax = plt.subplots(nrows=1, ncols=1)
+        ax.scatter([p[0] for p in trajectory], [p[1] for p in trajectory])
+        fig.savefig(self.experiments_images_folder + 'left_motor_trajectory_' + str(time.time()) + '.png')
 
 
     def determine_angular_speed(self, experiment_time, show_trajectory = False):
@@ -152,8 +158,8 @@ class KJuniorRobot:
         angular_velocities = []
         angular_speed_measurements = []
         robot_positions = []
-        self.client.simxSetJointTargetVelocity(self.left_motor_id, -self.angular_velocity, self.client.simxDefaultPublisher())
         self.client.simxSetJointTargetVelocity(self.right_motor_id, self.angular_velocity, self.client.simxDefaultPublisher())
+        self.client.simxSetJointTargetVelocity(self.left_motor_id, -self.angular_velocity, self.client.simxDefaultPublisher())
 
         start_time = time.time()
         while time.time() < start_time + experiment_time:
@@ -167,6 +173,8 @@ class KJuniorRobot:
             times.append(curr_time)
             x.append(pos[1][0])
             y.append(pos[1][1])
+
+        self.stop()
 
         for i in range(1, len(x)):
             dt = times[i] - times[i - 1]
@@ -187,7 +195,7 @@ class KJuniorRobot:
             marker_sizes = [p for p in range(len(robot_positions))]
             marker_style = matplotlib.markers.MarkerStyle('o', 'none')
             plt.scatter([pos[0] for pos in robot_positions], [pos[1] for pos in robot_positions], s = marker_sizes, marker = marker_style)
-            plt.savefig('./images/exp' + str(experiment_time) + '.png')
+            plt.savefig(self.experiments_images_folder + 'exp' + str(experiment_time) + '.png')
 
         return avg_angular_velocity, rotation_angle
 
@@ -219,12 +227,11 @@ class KJuniorRobot:
     
 
     def stop(self):
-        
         self.client.simxSetJointTargetVelocity(self.left_motor_id, 0, self.client.simxDefaultPublisher())
         self.client.simxSetJointTargetVelocity(self.right_motor_id, 0, self.client.simxDefaultPublisher())
-        self._spin(3)
+        self._spin(2)
 
 
-    def subscribe_getting_image_from_scanner(self, callback):
-        self.client.simxGetVisionSensorImage(self.vision_sensor_id, False, self.client.simxDefaultSubscriber(callback))
+    def stop_and_get_image(self):
+        return self.client.simxGetVisionSensorImage(self.vision_sensor_id, False, self.client.simxServiceCall())
 
