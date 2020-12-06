@@ -25,6 +25,7 @@ with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient', 'b0RemoteApi') as c
     image_processor = ImageProcessor(map_builder.update_map)
     robot = KJuniorRobot(client, 'KJunior', 'Vision_sensor', 'Proximity_sensor0')
     client.simxSynchronous(False)
+    
     def step():
         robot.subscribe_to_robot_position_change()
         robot.subscribe_to_left_wheel_position_change()
@@ -36,6 +37,7 @@ with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient', 'b0RemoteApi') as c
         first = get_vector_in_robot_coords(trajectory[0][0], trajectory[0][1], robot_pos)
         second = get_vector_in_robot_coords(trajectory[len(trajectory) - 1][0], trajectory[len(trajectory) - 1][1], robot_pos)
         print(get_angle_between_vectors(first, second) - pi / 2)
+
 
     def experiment_with_angular_speed():
         avg_speed = 0
@@ -50,6 +52,7 @@ with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient', 'b0RemoteApi') as c
 
         print(avg_speed / len(times))
         print(avg_angle / len(times))
+
 
     def move():
         #robot.subscribe_to_proximity_sensor()
