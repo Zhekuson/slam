@@ -21,8 +21,7 @@ class KJuniorRobot:
         self.default_left_motor_name = '_motorLeft'
         self.default_right_motor_name = '_motorRight'
         self.client = client
-        self.supposedX = 0
-        self.supposedY = 0
+
         self.position = [None, None]
         self.trajectory = []
         self.robot_position_lock = Lock()
@@ -32,9 +31,17 @@ class KJuniorRobot:
         self.left_motor_trajectory = []
         self.angular_velocity = 1.4
         self.linear_velocity = 10
-        self.rotation_per_sec = 0.10009779522019428
+        self.rotation_per_sec = 0.12908982839851437
         self.experiments_images_folder = './images/angular_speed_experiments/'
         self.robot_trajectory_images_folder = './images/robot_trajectory/'
+
+        self.supposed_position = [0, 0]
+        self.supposed_velocity = 0
+        self.supposed_angular_velocity = self.rotation_per_sec
+        self.supposed_orientation = 0
+        self.suppposed_position_lock = Lock()
+        self.supposed_orientation_lock = Lock()
+
         clear_folder(self.experiments_images_folder)
         clear_folder(self.robot_trajectory_images_folder)
 
@@ -136,6 +143,28 @@ class KJuniorRobot:
         raise RobotException("Error in getting velocity")
 
 
+    def get_supposed_position(self):
+        self.suppposed_position_lock.acquire()
+        pos = self.supposed_position
+        self.suppposed_position_lock.release()
+        return pos
+
+    
+    def get_supposed_orientation(self):
+        self.supposed_orientation_lock.acquire()
+        orientation = self.supposed_orientation
+        self.supposed_orientation_lock.release()
+        return orientation
+
+
+    def get_supposed_linear_velocity(self):
+        return self.supposed_velocity
+
+
+    def get_supposed_angular_velocity(self):
+        return self.supposed_angular_velocity
+
+
     def get_left_motor_trajectory(self):
         self.left_motor_position_lock.acquire()
         trajectory = [p for p in self.left_motor_trajectory]
@@ -199,36 +228,70 @@ class KJuniorRobot:
 
 
     def move(self, rotation, length):
-        self.rotate_without_moving(rotation)
+        print('Rotating on ' + str(rotation) + ' and moving on ' + str(length))
+        self._rotate_without_moving(rotation)
         time_for_movement = length / self.linear_velocity
-        self.set_target_speed(self.linear_velocity, time_for_movement)
+        self._set_target_speed(self.linear_velocity, time_for_movement)
 
 
-    def _spin(self, exec_time):
-        start_time = time.time()
-        while time.time() < start_time + exec_time:
-            self.client.simxSpinOnce()
-
-
-    def rotate_without_moving(self, delta_angle):
+    def _rotate_without_moving(self, delta_angle):
         needed_time_sec = delta_angle / self.rotation_per_sec
+        
         self.client.simxSetJointTargetVelocity(self.left_motor_id, -self.angular_velocity, self.client.simxDefaultPublisher())
         self.client.simxSetJointTargetVelocity(self.right_motor_id, self.angular_velocity, self.client.simxDefaultPublisher())
-        self._spin(needed_time_sec)
+        
+        print(needed_time_sec)
+        self.supposed_angular_velocity = self.rotation_per_sec
+
+        start_time = time.time()
+        last_update_time = start_time
+        while time.time() < start_time + needed_time_sec:
+            time_delta = time.time() - last_update_time
+            last_update_time = time.time()        
+            self._update_supposed_orientation(time_delta * self.supposed_angular_velocity)
+            self.client.simxSpinOnce()
+            
+        self.supposed_angular_velocity = 0
 
 
-    def set_target_speed(self, speed, exec_time):
+    def _update_supposed_orientation(self, da):
+        self.supposed_orientation_lock.acquire()
+        self.supposed_orientation += da
+        self.supposed_orientation_lock.release()
+
+
+    def _set_target_speed(self, speed, exec_time):
         self.client.simxSetJointTargetVelocity(self.left_motor_id, speed, self.client.simxDefaultPublisher())
         self.client.simxSetJointTargetVelocity(self.right_motor_id, speed, self.client.simxDefaultPublisher())
-        self._spin(exec_time)
+        self.supposed_velocity = 0.05
+
+        start_time = time.time()
+        last_update_time = start_time
+        while time.time() < start_time + exec_time:
+            time_delta = time.time() - last_update_time
+            last_update_time = time.time()
+            dy = self.supposed_velocity * math.sin(self.supposed_orientation) * time_delta
+            dx = self.supposed_velocity * math.cos(self.supposed_orientation) * time_delta
+            self._update_supposed_position(dx, dy)
+            self.client.simxSpinOnce()
+
+        self.supposed_velocity = 0
     
+
+    def _update_supposed_position(self, dx, dy):
+        self.suppposed_position_lock.acquire()
+        self.supposed_position = [self.supposed_position[0] + dx, self.supposed_position[1] + dy]
+        self.suppposed_position_lock.release()
+
 
     def stop(self):
         self.client.simxSetJointTargetVelocity(self.left_motor_id, 0, self.client.simxDefaultPublisher())
         self.client.simxSetJointTargetVelocity(self.right_motor_id, 0, self.client.simxDefaultPublisher())
-        self._spin(2)
+
+        start_time = time.time()
+        while time.time() < start_time + 2:
+            self.client.simxSpinOnce()
 
 
     def stop_and_get_image(self):
         return self.client.simxGetVisionSensorImage(self.vision_sensor_id, False, self.client.simxServiceCall())
-
