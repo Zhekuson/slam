@@ -41,7 +41,7 @@ class ImageProcessor():
         self.depth_images_folder = './images/depth_estimation/'
         clear_folder(self.detection_images_folder)
         clear_folder(self.depth_images_folder)
-        torch.cuda.empty_cache()
+        self.threads = []
 
 
     def process_image(self, msg):
@@ -53,17 +53,25 @@ class ImageProcessor():
             image = input.reshape((msg[1][0], msg[1][1], 3))
             tensor = self.transform(image = image, bboxes = None, labels=None)["image"].to(device)
 
-            self.last_update_time = time.time()
-            detection_job = Job(lambda: self.detect_objects_and_save_images(tensor), "Detect objects")
-            depth_est_job = Job(lambda: self.estimate_depth_and_save_image(tensor), "Estimating depth")
+            curr_time = time.time()
+            self.last_update_time = curr_time
+            detection_job = Job(lambda: self.detect_objects_and_save_images(tensor, str(curr_time)), "Detect objects")
+            depth_est_job = Job(lambda: self.estimate_depth_and_save_image(tensor, str(curr_time)), "Estimating depth")
             result = self.parallel_executor.execute([detection_job, depth_est_job])
             result.append(tensor)
 
             self.map_builder_callback(result)
 
-        thread = SlamThread(Job(process_image_internal, "Processing image"), True)
+        thread = SlamThread(Job(process_image_internal, "Processing image from visual sensor"), True)
         thread.start()
+        self.threads.append(thread)
 
+
+    def wait_remainig_threads(self):
+        print("Waiting for remaining threads in ImageProcessor")
+        for thread in self.threads:
+            if not thread.done:
+                thread.join()
 
 
     def detect_objects(self, tensor):
@@ -78,7 +86,7 @@ class ImageProcessor():
         return suitable_boxes
                 
 
-    def detect_objects_and_save_images(self, tensor):
+    def detect_objects_and_save_images(self, tensor, name):
         detection_predict = self.detection_model([tensor])
         suitable_boxes = []
         if detection_predict[0]['boxes'].size()[0]!=0:
@@ -90,7 +98,7 @@ class ImageProcessor():
                     suitable_boxes.append(box)
                     draw.rectangle([(box[0], box[1]), (box[2], box[3])], outline='white')
                 
-            image.save(self.detection_images_folder + str(self.last_update_time) + '.png')
+            image.save(self.detection_images_folder + name + '.png')
 
         return suitable_boxes
 
@@ -102,13 +110,13 @@ class ImageProcessor():
         return F.interpolate(depth_tensor, size = (tensor.size()[1], tensor.size()[2]))
 
 
-    def estimate_depth_and_save_image(self, tensor):
+    def estimate_depth_and_save_image(self, tensor, name):
         shape = (1, tensor.size()[0], tensor.size()[1], tensor.size()[2])
         depth_tensor = self.depth_model(torch.reshape(tensor, shape).float().to(device))
         depth_tensor = (depth_tensor - torch.min(depth_tensor)) / (torch.max(depth_tensor) - torch.min(depth_tensor))
-        #depth_tensor = F.interpolate(depth_tensor, size = (tensor.size()[1], tensor.size()[2]))
+        depth_tensor = F.interpolate(depth_tensor, size = (tensor.size()[1], tensor.size()[2]))
         depth_image = torchvision.transforms.ToPILImage()(depth_tensor.squeeze(0))
 
-        depth_image.save(self.depth_images_folder + str(self.last_update_time) + '.png')
+        depth_image.save(self.depth_images_folder + name + '.png')
 
         return depth_tensor

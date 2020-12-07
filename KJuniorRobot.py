@@ -8,7 +8,7 @@ from math import pi
 import math
 from matplotlib import pyplot as plt
 import matplotlib.markers
-from utils import get_angle_between_vectors, get_vector_in_robot_coords, clear_folder
+from utils import get_angle_between_vectors, get_vector_in_robot_coords, clear_folder, plot_scatter_and_save
 
 
 class KJuniorRobot:
@@ -80,9 +80,8 @@ class KJuniorRobot:
 
     def save_trajectory(self):
         trajectory = self.get_trajectory()
-        fig, ax = plt.subplots(nrows=1, ncols=1)
-        ax.scatter([p[0] for p in trajectory], [p[1] for p in trajectory])
-        fig.savefig(self.robot_trajectory_images_folder + 'robot_trajectory_' + str(time.time()) + '.png')
+        x, y = [p[0] for p in trajectory], [p[1] for p in trajectory]
+        plot_scatter_and_save(self.robot_trajectory_images_folder + 'robot_trajectory_' + str(time.time()) + '.png', x, y)
 
 
     def get_trajectory(self):
@@ -146,9 +145,8 @@ class KJuniorRobot:
 
     def save_left_motor_trajectory(self):
         trajectory = self.get_left_motor_trajectory()
-        fig, ax = plt.subplots(nrows=1, ncols=1)
-        ax.scatter([p[0] for p in trajectory], [p[1] for p in trajectory])
-        fig.savefig(self.experiments_images_folder + 'left_motor_trajectory_' + str(time.time()) + '.png')
+        x, y = [p[0] for p in trajectory], [p[1] for p in trajectory]
+        plot_scatter_and_save(self.experiments_images_folder + 'left_motor_trajectory_' + str(time.time()) + '.png', x, y)
 
 
     def determine_angular_speed(self, experiment_time, show_trajectory = False):
@@ -220,7 +218,6 @@ class KJuniorRobot:
 
 
     def set_target_speed(self, speed, exec_time):
-        print("Setting robot speed to " + str(speed) + " at time " + str(time.time()))
         self.client.simxSetJointTargetVelocity(self.left_motor_id, speed, self.client.simxDefaultPublisher())
         self.client.simxSetJointTargetVelocity(self.right_motor_id, speed, self.client.simxDefaultPublisher())
         self._spin(exec_time)

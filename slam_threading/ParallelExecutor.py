@@ -8,6 +8,7 @@ class SlamThread(threading.Thread):
         self.job = job
         self.result = None
         self.verbose = verbose
+        self.done = False
 
     
     def run(self):
@@ -19,6 +20,9 @@ class SlamThread(threading.Thread):
 
         if self.verbose:
             print("Execution take " + str(time.time() - start_time) + " " + self.job.name)
+
+        self.done = True
+        
 
 
 class Job:

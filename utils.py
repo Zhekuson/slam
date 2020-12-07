@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import os, shutil
+from matplotlib import pyplot as plt
 
 
 def get_angle_between_vectors(first, second):
@@ -24,3 +25,17 @@ def clear_folder(folder):
                 shutil.rmtree(file_path)
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
+
+
+def plot_scatter_and_save(path, x, y):
+    fig, ax = plt.subplots(nrows=1, ncols=1)
+    ax.scatter(x, y)
+    fig.savefig(path)
+    plt.close(fig)
+
+
+def plot_plot_and_save(path, data):
+    fig, ax = plt.subplots(nrows=1, ncols=1)
+    ax.plot(data)
+    fig.savefig(path)
+    plt.close(fig)

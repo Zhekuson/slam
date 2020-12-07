@@ -68,6 +68,7 @@ with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient', 'b0RemoteApi') as c
         robot.set_target_speed(5, 8)
         image_processor.process_image(robot.stop_and_get_image())
         robot.save_trajectory()
+        image_processor.wait_remainig_threads()
 
 
     perform_step(move, client)
