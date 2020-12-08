@@ -1,5 +1,5 @@
 from b0RemoteApi import RemoteApiClient
-from RobotException import RobotException
+from robot_exception import RobotException
 import numpy as np
 import time
 from threading import Lock
@@ -39,7 +39,7 @@ class KJuniorRobot:
         self.supposed_velocity = 0
         self.supposed_angular_velocity = self.rotation_per_sec
         self.supposed_orientation = 0
-        self.suppposed_position_lock = Lock()
+        self.supposed_position_lock = Lock()
         self.supposed_orientation_lock = Lock()
 
         clear_folder(self.experiments_images_folder)
@@ -144,9 +144,9 @@ class KJuniorRobot:
 
 
     def get_supposed_position(self):
-        self.suppposed_position_lock.acquire()
+        self.supposed_position_lock.acquire()
         pos = self.supposed_position
-        self.suppposed_position_lock.release()
+        self.supposed_position_lock.release()
         return pos
 
     
@@ -227,6 +227,12 @@ class KJuniorRobot:
         return avg_angular_velocity, rotation_angle
 
 
+    def update_supposed_position(self, new_position):
+        self.supposed_position_lock.acquire()
+        self.supposed_position = new_position
+        self.supposed_position_lock.release()
+
+
     def move(self, rotation, length):
         print('Rotating on ' + str(rotation) + ' and moving on ' + str(length))
         self._rotate_without_moving(rotation)
@@ -279,9 +285,9 @@ class KJuniorRobot:
     
 
     def _update_supposed_position(self, dx, dy):
-        self.suppposed_position_lock.acquire()
+        self.supposed_position_lock.acquire()
         self.supposed_position = [self.supposed_position[0] + dx, self.supposed_position[1] + dy]
-        self.suppposed_position_lock.release()
+        self.supposed_position_lock.release()
 
 
     def stop(self):
@@ -294,4 +300,5 @@ class KJuniorRobot:
 
 
     def stop_and_get_image(self):
+        self.stop()
         return self.client.simxGetVisionSensorImage(self.vision_sensor_id, False, self.client.simxServiceCall())

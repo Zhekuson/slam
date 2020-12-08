@@ -1,14 +1,17 @@
-from MapBuilder import MapBuilder
+from landmarks_getter import LandmarksGetter
 import os
 import b0RemoteApi
 import time
-from KJuniorRobot import KJuniorRobot
+from k_junior_robot import KJuniorRobot
 from b0RemoteApi import RemoteApiClient
 from math import pi
 from utils import get_vector_in_robot_coords, get_angle_between_vectors
-from ExtendedKalmanFilter import ExtendedKalmanFilter
-from ImageProcessor import ImageProcessor
+from extended_kalman_filter import ExtendedKalmanFilter
+from image_processor import ImageProcessor
+
+
 os.add_dll_directory('C:\\Program Files\\CoppeliaRobotics\\CoppeliaSimEdu\\')
+
 
 def perform_step(step_func, client: RemoteApiClient):
     client.simxStartSimulation(client.simxServiceCall())
@@ -17,10 +20,10 @@ def perform_step(step_func, client: RemoteApiClient):
 
 
 with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient', 'b0RemoteApi') as client:
-    map_builder = MapBuilder()
-    image_processor = ImageProcessor(map_builder.update_map)
+    image_processor = ImageProcessor()
     robot = KJuniorRobot(client, 'KJunior', 'Vision_sensor', 'Proximity_sensor0')
     extended_kalman_filter = ExtendedKalmanFilter(robot) 
+    landmarks_getter = LandmarksGetter()
 
     def step():
         robot.subscribe_to_robot_position_change()
@@ -68,13 +71,19 @@ with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient', 'b0RemoteApi') as c
     def test_kalman_filter():
         robot.subscribe_to_robot_position_change()
         robot.subscribe_to_orientation_change()
-        extended_kalman_filter.start_monitoring_robot()
-        robot.move(pi / 4, 20)
-        robot.move(pi / 2, 20)
-        robot.move(pi / 2, 20)
-        robot.move(pi / 2, 20)
-        extended_kalman_filter.stop() 
+        extended_kalman_filter.perform_filter_step(landmarks_getter.get_landmarks(image_processor.process_image(robot.stop_and_get_image())))
+        robot.move(pi / 3, 0)
+        extended_kalman_filter.perform_filter_step(landmarks_getter.get_landmarks(image_processor.process_image(robot.stop_and_get_image())))
+        robot.move(pi / 3, 0)
+        extended_kalman_filter.perform_filter_step(landmarks_getter.get_landmarks(image_processor.process_image(robot.stop_and_get_image())))
+        robot.move(pi / 3, 0)
+        extended_kalman_filter.perform_filter_step(landmarks_getter.get_landmarks(image_processor.process_image(robot.stop_and_get_image())))
+        robot.move(pi / 3, 0)
+        extended_kalman_filter.perform_filter_step(landmarks_getter.get_landmarks(image_processor.process_image(robot.stop_and_get_image())))
+        robot.move(pi / 3, 0)
+        extended_kalman_filter.perform_filter_step(landmarks_getter.get_landmarks(image_processor.process_image(robot.stop_and_get_image())))
         robot.save_trajectory()
+        extended_kalman_filter.plot_positions()
 
 
     perform_step(test_kalman_filter, client)

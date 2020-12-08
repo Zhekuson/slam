@@ -39,3 +39,7 @@ def plot_plot_and_save(path, data):
     ax.plot(data)
     fig.savefig(path)
     plt.close(fig)
+
+
+def pi_2_pi(angle):
+    return (angle + math.pi) % (2 * math.pi) - math.pi
