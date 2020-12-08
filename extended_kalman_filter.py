@@ -121,7 +121,7 @@ class ExtendedKalmanFilter:
             dots = []
 
             while i < 5:
-                dots.append([depths[int(i * len(depths) / 5)] / 10, start_angle + delta_angle * (i + 1)])    
+                dots.append([depths[int(i * len(depths) / 5)] * 5, start_angle + delta_angle * (i + 1)])    
                 i += 1
 
             return dots
@@ -135,27 +135,28 @@ class ExtendedKalmanFilter:
 
 
     def ekf_update(self, z):
-        for iz in range(len(z[:, 0])): 
-            minid = self.search_correspond_LM_ID(z[iz, 0:2]) 
+        if len(z) > 0:
+            for iz in range(len(z[:, 0])): 
+                minid = self.search_correspond_LM_ID(z[iz, 0:2]) 
 
-            nLM = int((len(self.xEst) - STATE_SIZE) / 2)
-            
-            if minid == nLM: 
-                xAug = np.vstack((self.xEst, self.calc_LM_Pos(z[iz, :])))
+                nLM = int((len(self.xEst) - STATE_SIZE) / 2)
+                
+                if minid == nLM: 
+                    xAug = np.vstack((self.xEst, self.calc_LM_Pos(z[iz, :])))
 
-                PAug = np.vstack((np.hstack((self.PEst, np.zeros((len(self.xEst), LM_SIZE)))),
-                                np.hstack((np.zeros((LM_SIZE, len(self.xEst))), self.initP))))
-                self.xEst = xAug
-                self.PEst = PAug
- 
-      
-            lm = self.get_LM_Pos_from_state(minid)
+                    PAug = np.vstack((np.hstack((self.PEst, np.zeros((len(self.xEst), LM_SIZE)))),
+                                    np.hstack((np.zeros((LM_SIZE, len(self.xEst))), self.initP))))
+                    self.xEst = xAug
+                    self.PEst = PAug
     
-            y, S, H = self.calc_innovation(lm, self.xEst, self.PEst, z[iz, 0:2], minid)
+        
+                lm = self.get_LM_Pos_from_state(minid)
+        
+                y, S, H = self.calc_innovation(lm, self.xEst, self.PEst, z[iz, 0:2], minid)
 
-            K = (self.PEst @ H.T) @ np.linalg.inv(S) # Calculate Kalman Gain
-            self.xEst = self.xEst + (K @ y)
-            self.PEst = (np.eye(len(self.xEst)) - (K @ H)) @ self.PEst
+                K = (self.PEst @ H.T) @ np.linalg.inv(S) # Calculate Kalman Gain
+                self.xEst = self.xEst + (K @ y)
+                self.PEst = (np.eye(len(self.xEst)) - (K @ H)) @ self.PEst
         
         self.xEst[2] = pi_2_pi(self.xEst[2])
     
@@ -176,14 +177,13 @@ class ExtendedKalmanFilter:
     
     def perform_filter_step(self, landmarks):
         processed_landmarks = self._get_landmarks(landmarks)
-        if len(processed_landmarks) > 0:
-            self.ekf_predict()
-            self.ekf_update(processed_landmarks)
-            estimated_position = [self.xEst[0][0], self.xEst[1][0]]
-            self.robot.update_supposed_position(estimated_position)
-            true_position = self.robot.get_robot_position()
-            self.supposed.append(estimated_position)
-            self.real.append(true_position)
+        self.ekf_predict()
+        self.ekf_update(processed_landmarks)
+        estimated_position = [self.xEst[0][0], self.xEst[1][0]]
+        self.robot.update_supposed_position(estimated_position)
+        true_position = self.robot.get_robot_position()
+        self.supposed.append(estimated_position)
+        self.real.append(true_position)
 
 
     def plot_positions(self):
@@ -191,10 +191,17 @@ class ExtendedKalmanFilter:
         self.ax.scatter([r[0] for r in self.real], [r[1] for r in self.real], c = 'b')
         
         i = 3
+        avg_x = 0
+        avg_y = 0
         while i + 1 < len(self.xEst):
-            print([self.xEst[i]], [self.xEst[i + 1]])
-            self.ax.scatter([self.xEst[i]], [self.xEst[i + 1]], c = 'r')
+            avg_x += self.xEst[i]
+            avg_y += self.xEst[i + 1]
             i += 2
+
+        avg_x /= (len(self.xEst) - 3)
+        avg_y /= (len(self.xEst) - 3)
+
+        self.ax.scatter([avg_x], [avg_y], c = 'r', s = [60*4**n for n in range(1, 2)])
 
         self.fig.savefig(self.path_to_map)
         plt.close(self.fig)

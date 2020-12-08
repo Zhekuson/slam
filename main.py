@@ -69,21 +69,23 @@ with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient', 'b0RemoteApi') as c
 
     
     def test_kalman_filter():
+        def perform_kalman():
+            extended_kalman_filter.perform_filter_step(landmarks_getter.get_landmarks(image_processor.process_image(robot.stop_and_get_image())))
+            extended_kalman_filter.plot_positions()
         robot.subscribe_to_robot_position_change()
         robot.subscribe_to_orientation_change()
-        extended_kalman_filter.perform_filter_step(landmarks_getter.get_landmarks(image_processor.process_image(robot.stop_and_get_image())))
-        robot.move(pi / 3, 0)
-        extended_kalman_filter.perform_filter_step(landmarks_getter.get_landmarks(image_processor.process_image(robot.stop_and_get_image())))
-        robot.move(pi / 3, 0)
-        extended_kalman_filter.perform_filter_step(landmarks_getter.get_landmarks(image_processor.process_image(robot.stop_and_get_image())))
-        robot.move(pi / 3, 0)
-        extended_kalman_filter.perform_filter_step(landmarks_getter.get_landmarks(image_processor.process_image(robot.stop_and_get_image())))
-        robot.move(pi / 3, 0)
-        extended_kalman_filter.perform_filter_step(landmarks_getter.get_landmarks(image_processor.process_image(robot.stop_and_get_image())))
-        robot.move(pi / 3, 0)
-        extended_kalman_filter.perform_filter_step(landmarks_getter.get_landmarks(image_processor.process_image(robot.stop_and_get_image())))
+        
+        perform_kalman()
+        robot.move(pi / 3, 30)
+        robot.move(pi / 3, 30)
+        perform_kalman()
+        robot.move(pi / 3, 30)
+        perform_kalman()
+        robot.move(pi / 3, 30)
+        perform_kalman()
+        robot.move(pi / 3, 30)
+        perform_kalman()
         robot.save_trajectory()
-        extended_kalman_filter.plot_positions()
 
 
     perform_step(test_kalman_filter, client)

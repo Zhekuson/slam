@@ -13,8 +13,7 @@ from utils import get_angle_between_vectors, get_vector_in_robot_coords, clear_f
 
 class KJuniorRobot:
 
-    def __init__(self, client: RemoteApiClient, robot_name, attached_vision_sensor_name,
-         attached_proximity_sensor_name):
+    def __init__(self, client: RemoteApiClient, robot_name, attached_vision_sensor_name, attached_proximity_sensor_name):
         """
         Init: already connected client, robot name from Coppelia, vision sensor name
         """
@@ -31,7 +30,7 @@ class KJuniorRobot:
         self.left_motor_trajectory = []
         self.angular_velocity = 1.4
         self.linear_velocity = 10
-        self.rotation_per_sec = 0.12908982839851437
+        self.rotation_per_sec = 0.1201999286907338
         self.experiments_images_folder = './images/angular_speed_experiments/'
         self.robot_trajectory_images_folder = './images/robot_trajectory/'
 
